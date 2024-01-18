@@ -24,5 +24,23 @@ pub enum SubCommands {
     },
 
     /// subcommand to destroy the bin folder
-    Destroy {},
+    Destroy {
+        /// path to home directory where the config folder has been stored, if custom path has been specified 
+        #[arg(long)]
+        home: Option<path::PathBuf>,
+
+        /// name of config folder if set while initializing, defaults to `stb`
+        #[arg(short, long)]
+        project_name: Option<OsString>,
+
+        /// destroy project even if the bin is not empty
+        #[arg(short, long)]
+        force: bool
+    },
+
+    /// clear the bin
+    Clear {},
+
+    /// undo previous 'delete'
+    Undo {},
 }
