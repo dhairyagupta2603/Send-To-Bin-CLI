@@ -1,11 +1,9 @@
 use clap::Parser;
-use dotenv::dotenv;
 
 mod cli;
 mod user_settings;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv().expect("unable to load .env file");
 
     let mut profile = user_settings::UserBinProfile::constructor();
     let cli = cli::Cli::parse();

@@ -5,7 +5,6 @@ use std::{
     path::PathBuf, env,
 };
 
-use dotenv;
 use serde::{Deserialize, Serialize};
 
 /// Settings for initialized bin
@@ -22,9 +21,9 @@ pub struct UserBinProfile {
 impl UserBinProfile {
     /// Creates and returns a basic new UserProfile
     pub fn constructor() -> UserBinProfile {
-        let home_dir = dotenv::var("DEFAULT_HOME").unwrap();
+        let home_dir = env::var_os("HOME").unwrap();
         return UserBinProfile {
-            home: home_dir.clone(),
+            home: home_dir.to_string_lossy().to_string(),
             is_empty: true,
             proj_dir: PathBuf::from(home_dir)
                 .join("sendToBin")
@@ -34,13 +33,7 @@ impl UserBinProfile {
     }
 
     pub fn destroy_project(&mut self, force: &bool) -> Result<(), Box<dyn std::error::Error>> {
-        let project_path = env::var("STB_PROJECT_PATH")?;
-
-        // get user profile settings from config
-        let config_path = PathBuf::from(project_path).join("config.json");
-        let config_data: UserBinProfile = serde_json::from_str(
-            fs::read_to_string(config_path)?.as_ref()
-        ).expect("JSON was not well-formatted");
+        let config_data = self.get_config()?;
 
         // error if files in bin
         if !*force && !config_data.is_empty {
@@ -106,9 +99,75 @@ impl UserBinProfile {
     }
 
     pub fn bin_clear(&mut self, yes: &bool) -> Result<(), Box<dyn std::error::Error>> {
-        println!("{}", yes);
+        let config_data = self.get_config()?;
+
+        if config_data.is_empty {
+            println!("Bin is already empty");
+            return Ok(());
+        }
+
+        // read bin folder to check the items
+        let mut total_entries = 0;
+        let mut valid_entries= 0;
+        let mut entry_paths : Vec<(PathBuf, bool)>= vec![];
+
+        let entries = fs::read_dir(PathBuf::from(&self.proj_dir).join("bin"))?;
+        for entry in entries {
+            total_entries += 1;
+            match entry {
+                Err(err) => println!("Unable to read entry.\n{}", err),
+                Ok(val) => {
+                    valid_entries += 1;
+
+                    let entry_path = val.path();
+                    entry_paths.push((entry_path.clone(), true));
+
+                    if entry_path.is_file() {
+                        println!("File:\t{:?}", entry_path);
+                    } else if entry_path.is_dir() {
+                        println!("Dir:\t{:?}", entry_path);
+                    }
+                }
+            }
+        }
+
+        println!("Found {}/{} entries in bin", valid_entries, total_entries);
+
+        // if not already accepted clear
+        if !yes {
+            // ask for permission
+            let mut choice = "n".to_string();
+            print!("Do you want to proceed? (y/n): ");
+            io::stdin().read_line(&mut choice)?;
+            choice = choice.trim().chars().next().unwrap().to_string();
+
+            if choice == "n" {
+                println!("Bin not cleared");
+            }
+        }
+
+        // delete contents
+        for (ep, is_file) in entry_paths {
+            println!("Deleting {:?}", ep);
+            if is_file {
+                fs::remove_file(ep)?;
+            } else {
+                fs::remove_dir_all(ep)?;
+            }
+        }
+
+        println!("Succesfully cleared the bin!");
         Ok(())
     }
 
     /****************************** HELPER FUNCTIONS******************************/
+    fn get_config(&mut self) -> Result<UserBinProfile, Box<dyn std::error::Error>> {
+        let project_path = env::var("STB_PROJECT_PATH")?;
+
+        // get user profile settings from config
+        let config_path = PathBuf::from(project_path).join("config.json");
+        let config_data: UserBinProfile = serde_json::from_str(fs::read_to_string(config_path)?.as_ref())?;
+
+        Ok(config_data)
+    }
 }
