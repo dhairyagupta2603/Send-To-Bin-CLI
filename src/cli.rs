@@ -1,11 +1,14 @@
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(author, version, about, long_about)]
+#[command(name="stb", author="Dhairya Gupta", version="0.1.0", about, long_about)]
 pub struct Cli {
     /// All the sub commands related to the executable
     #[command(subcommand)]
     pub sub_command: Option<SubCommands>,
+
+    /// files or directories to 'delete'
+    pub input_files: Vec<String>,
 }
 
 #[derive(Subcommand)]
