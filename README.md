@@ -42,7 +42,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-This project aims to be a drop in replacement for the 'rm' command for basic use cases and scenarios. This has some similar functionality to windows recycle bin. This is the first project that I have build in Rust as a exercise to learn iand understand its fundamentals. 
+This project aims to be a drop-in replacement for the 'rm' command for basic use cases and scenarios. This has some similar functionality to windows recycle bin. This is the first project that I have build in Rust as a exercise to learn and understand its fundamental syntax and package management. 
 
 Regardless, here are some features that make it usefull: -
 * It doesn't require any additional configurations for most popular distributions (checked in debian)
@@ -51,25 +51,21 @@ Regardless, here are some features that make it usefull: -
 
 <!-- GETTING STARTED -->
 ## Getting Started
-
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
-
 ### Prerequisites
 
 * The system should have a ```.bashrc``` file in the ```$HOME``` directory so that project path and bin path can be specified when installing in linux. 
 
-* The system should also have ```/usr/local/bin``` to write the binary into. If you eant to customize the behaviour you can change the ```$dest``` variable it in the ```linux-install.sh``` file.
+* The system should also have ```/usr/local/bin``` to write the binary into. If you want to customize the path, you can change the ```$dest``` variable it in the ```linux-install.sh``` file.
 
 ### Installation
 
-Installing this project is a very simple process. You just need 2 steps: -
-1. clone the repo anyware on your system 
+Installing this project is a very simple process. You just need the following steps: -
+1. Clone the repo anyware on your system 
     ```sh
     git clone "https://github.com/dhairyagupta2603/Send-To-Bin-CLI.git"
     ```
 
-2. run the ```linux-install.sh``` in the root of the project directory
+2. Run the ```linux-install.sh``` in the root of the project directory
    ```sh
    cd Send-To-Bin-CLI
 
@@ -84,7 +80,7 @@ Installing this project is a very simple process. You just need 2 steps: -
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-the commands are as follows: -
+The commands are as follows: -
 * Initializing the project is done by 
   ```sh
   stb init
@@ -93,17 +89,17 @@ the commands are as follows: -
   ```sh
   stb file1.txt ../file2.json src/rsc/ 
   ```
-* If you want to undo the prevois command just do 
+* If you want to undo the previous command just do 
   ```sh
   stb undo
   ```
-* If you want to clear the bin, you guessed it
+* If you want to clear the bin, you guessed it just
   ```sh
   stb clear
   # or to skip confirmation
   stb clear -y
   ```
-* If you don't want to use stb anyome, you can also do 
+* If you don't want to use stb anymore, you can also do 
   ```sh
   stb destroy
   # or if bin is not empty
