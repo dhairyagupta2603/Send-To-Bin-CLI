@@ -8,6 +8,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 /// Settings for initialized bin
+#[derive(Debug)]
 #[derive(Serialize, Deserialize)]
 pub struct UserBinProfile {
     /// home directory path
@@ -16,6 +17,16 @@ pub struct UserBinProfile {
     pub proj_dir: String,
     /// Check for "deleted" files existing in the bin
     pub is_empty: bool,
+    /// previously deleted files
+    pub restore: Vec<RestoreLink>,
+}
+
+/// links a file/directory path in bin to its initial path
+#[derive(Debug)]
+#[derive(Serialize, Deserialize)]
+pub struct RestoreLink {
+    pub init_path: String,
+    pub bin_path: String,
 }
 
 impl UserBinProfile {
@@ -26,12 +37,14 @@ impl UserBinProfile {
             home: home_dir.to_string_lossy().to_string(),
             is_empty: true,
             proj_dir: PathBuf::from(home_dir)
-                .join("sendToBin")
-                .to_string_lossy()
-                .to_string(),
+            .join("sendToBin")
+            .to_string_lossy()
+            .to_string(),
+            restore: vec![],
         };
     }
 
+    // destroys project folder
     pub fn destroy_project(&mut self, force: &bool) -> Result<(), Box<dyn std::error::Error>> {
         let config_data = self.get_config()?;
 
@@ -49,6 +62,7 @@ impl UserBinProfile {
         Ok(())
     }
 
+    // initailzes project path and config
     pub fn initialize_project(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         // open '~/.bashrc'
         let bashrc_path = PathBuf::from(self.home.clone()).join(".bashrc");
@@ -67,18 +81,18 @@ impl UserBinProfile {
         }
 
         // set project path if it doesn't exist
-        match project_path {
-            Some(val) => panic!("User project already exists at {:?}\nuse `stb destroy` to remove the earlier project first then initialize it", val),
-            None => {
-                let mut bashrc_file = fs::OpenOptions::new().append(true).open(&bashrc_path)?;
-                let project_var = format!(
-                    "export {}\"{}\" # send to bin project path", 
-                    project_var, self.proj_dir);
-
-                writeln!(bashrc_file, "{}", project_var)?;
-                println!("Succesfully appended project path {} to .bashrc", self.proj_dir);
-            }
+        if let Some(val) = project_path {
+            let error_message = format!(
+                "User project already exists at {}. use `stb destroy` to remove the earlier project first then initialize it",
+                val.to_string_lossy()
+            ).to_string();
+            return Err(Box::new(io::Error::new(io::ErrorKind::Other, error_message)));
         }
+
+        let mut bashrc_file = fs::OpenOptions::new().append(true).open(&bashrc_path)?;
+        let project_var = format!("export {}\"{}\" # send to bin project path", project_var, self.proj_dir);
+        writeln!(bashrc_file, "{}", project_var)?;
+        println!("Succesfully appended project path {} to .bashrc", self.proj_dir);
 
         // create project folder
         fs::create_dir(&self.proj_dir)?;
@@ -93,10 +107,11 @@ impl UserBinProfile {
         let mut config_file = fs::File::create(PathBuf::from(&self.proj_dir).join("config.json"))?;
         let config_data = serde_json::to_string_pretty(&self)?;
         config_file.write_all(config_data.as_bytes())?;
-        println!("Successfully written configurations\n\n***PLEASE RELOAD TERMINAL***\n");
+        println!("Successfully written configurations\n\n***please reload terminal or use 'source ~/.bashrc'***\n");
         Ok(())
     }
 
+    // clear bin for removeing files forever
     pub fn bin_clear(&mut self, yes: &bool) -> Result<(), Box<dyn std::error::Error>> {
         let mut config_data = self.get_config()?;
 
@@ -162,6 +177,42 @@ impl UserBinProfile {
         UserBinProfile::modify_config(&mut config_data, &true)?;
 
         println!("Succesfully cleared the bin!");
+        Ok(())
+    }
+
+    pub fn undo(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let mut profile = self.get_config()?;
+
+        // move files back
+        let mut num_restored = 0;
+        for restore in profile.restore {
+            num_restored+=1;
+            println!("restoring to {:?}", restore.init_path);
+            fs::rename(&restore.bin_path, &restore.init_path)?;
+        }
+
+        if num_restored == 0 {
+            println!("Nothing to restore");
+            return Ok(());
+        }
+
+        println!("Restored all files!");
+        profile.restore = vec![];
+
+        // read bin folder to check if empty
+        profile.is_empty = true;
+        let entries = fs::read_dir(PathBuf::from(&self.proj_dir).join("bin"))?;
+        for entry in entries {
+            if let Ok(_) = entry {
+                profile.is_empty = false;
+            } 
+        }
+
+        let mut config_file = fs::File::create(PathBuf::from(&profile.proj_dir).join("config.json"))?;
+        let config_data = serde_json::to_string_pretty(&profile)?;
+
+        config_file.write_all(config_data.as_bytes())?;
+
         Ok(())
     }
 
