@@ -6,7 +6,7 @@
 
 <!-- PROJECT LOGO -->
 <div align="center">
-  <h3 align="center">SEND-TO-BIN</h3>
+  <h1 align="center">SEND-TO-BIN</h1>
 
   <p align="center">
     A mush safer alternative for the linux 'rm' command built with Rust
